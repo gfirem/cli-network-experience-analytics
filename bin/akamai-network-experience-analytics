@@ -1,0 +1,173 @@
+#!/usr/bin/env python
+
+# Copyright 2018 Akamai Technologies, Inc. All Rights Reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import argparse
+import sys
+import os
+import requests
+import logging
+import json
+from akamai.edgegrid import EdgeGridAuth, EdgeRc
+import nea
+
+logging.basicConfig(level=logging.WARN)
+
+COLOR_GREEN = '\033[32m'
+COLOR_RED = '\033[31m'
+COLOR_NATIVE = '\033[m'
+SUCCESS_MESSAGE = ' [' + COLOR_GREEN + 'OK' + COLOR_NATIVE + ']\n'
+FAILURE_MESSAGE = ' [' + COLOR_RED + 'FAIL' + COLOR_NATIVE + ']\n'
+
+
+def main():
+    args = parse_cmdline_args()
+
+    response = args.handler(args)
+    if response:
+        if args.csv:
+            parsed_report = json.loads(response.content)
+            print_result(nea.report_to_csv(parsed_report, args.ungrouped_dimensions))
+        else:
+            print_result(response.content)
+
+    return 0
+
+
+def parse_cmdline_args():
+    parser = argparse.ArgumentParser(description = 'Akamai CLI for Network Experience Analytics')
+    parser.set_defaults(json=True, csv=False)
+
+    subparsers = parser.add_subparsers()
+
+    help_parser = subparsers.add_parser('help', help='Show available help')
+    help_parser.set_defaults(handler=print_help)
+
+    # Arguments for controlling the output format and group ID are shared between multiple, but not all,
+    # subparsers (reporting, configuration, etc). To reduce duplication, we keep these args in their
+    # own parsers, and have the relevant subparsers declare them as their parent/parents.
+    output_format_parser = argparse.ArgumentParser(add_help=False)
+    output_format_group = output_format_parser.add_mutually_exclusive_group()
+    output_format_group.add_argument('-j', '--json',
+                                     help='format output as JSON',
+                                     action='store_true')
+    output_format_group.add_argument('-c', '--csv',
+                                     help='format output as CSV',
+                                     action='store_true')
+
+    group_id_parser = argparse.ArgumentParser(add_help=False)
+    group_id_parser.add_argument('-g', '--group-id', help='Luna portal group (context) numeric identifier',
+                                 type=int, required=True)
+
+    edgerc_parser = argparse.ArgumentParser(add_help=False)
+    edgerc_parser.add_argument('--edgerc', help='full path to the .edgerc file')
+    edgerc_parser.add_argument('--section', help='a section of the .edgerc to use')
+
+    service_version_parser = subparsers.add_parser('service-version',
+                                                   help='show version of the API service provider',
+                                                   parents=[edgerc_parser])
+    service_version_parser.set_defaults(handler=get_service_version)
+
+    report_arg_parser = subparsers.add_parser('report',
+                                              help='display a network experience report',
+                                              parents=[output_format_parser, group_id_parser, edgerc_parser])
+    report_arg_parser.add_argument('-o', '--network-operator-id',
+                                   help='network operator numeric identifier',
+                                   type=int,
+                                   required=True)
+    report_arg_parser.add_argument('-s', '--start-time',
+                                   help='start time of the report, in ISO-8601 format',
+                                   required=True)
+    report_arg_parser.add_argument('-e', '--end-time',
+                                   help='end time of the report, in ISO-8601 format',
+                                   required=True)
+    report_arg_parser.add_argument('-k', '--kpis',
+                                   help='list of KPIs to include in the report',
+                                   nargs=argparse.ONE_OR_MORE,
+                                   metavar='KPI')
+    report_arg_parser.add_argument('-d', '--ungrouped-dimensions',
+                                   help='list of ungrouped dimensions to include in the report',
+                                   nargs=argparse.ONE_OR_MORE,
+                                   metavar='DIMENSION')
+    report_arg_parser.add_argument('-u', '--grouped-dimensions',
+                                   help='list of dimensions by which to group KPIs and other (ungrouped) dimensions',
+                                   nargs=argparse.ONE_OR_MORE,
+                                   metavar='DIMENSION')
+    report_arg_parser.add_argument('-G', '--report-granularity',
+                                   help='granularity of report data, in seconds',
+                                   type=int,
+                                   default=24*60*60)
+
+    report_arg_parser.set_defaults(handler=get_report)
+
+    return parser.parse_args()
+
+
+def connect(args):
+    edgerc_path = args.edgerc
+    if not edgerc_path:
+        edgerc_path = os.path.join(os.path.expanduser('~'), '.edgerc')
+
+    edgerc_section = args.section
+    if not edgerc_section:
+        edgerc_section = 'network-experience-analytics'
+
+    edgerc = EdgeRc(edgerc_path)
+    session = requests.Session()
+    session.auth = EdgeGridAuth.from_edgerc(edgerc, edgerc_section)
+    return nea.NeaClient(session, edgerc.get(edgerc_section, 'host'))
+
+
+def print_help(args):
+    pass
+
+
+def get_service_version(args):
+    print_progress('Getting service version...')
+    service_version = connect(args).get_service_version()
+    print_progress(SUCCESS_MESSAGE)
+    return service_version
+
+
+def get_report(args):
+    print_progress('Getting report...')
+
+    report = connect(args).get_report(
+        args.start_time,
+        args.end_time,
+        args.network_operator_id,
+        args.group_id,
+        args.report_granularity,
+        args.kpis,
+        args.ungrouped_dimensions,
+        args.grouped_dimensions
+    )
+
+    print_progress(SUCCESS_MESSAGE)
+
+    return report
+
+
+def print_progress(message):
+    sys.stderr.write(message)
+
+
+def print_result(message):
+    sys.stdout.write(message)
+
+
+if __name__ == '__main__':
+    status = main()
+    sys.exit(status)

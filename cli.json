@@ -1,0 +1,13 @@
+{
+  "requirements": {
+    "python": "2.7.5"
+  },
+  "commands": [
+    {
+      "name": "network-experience-analytics",
+      "aliases": ["nea"],
+      "version": "1.0.0",
+      "description": "Access and control Network Experience Analytics"
+    }
+  ]
+}
