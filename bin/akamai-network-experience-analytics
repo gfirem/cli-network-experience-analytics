@@ -175,30 +175,42 @@ def print_help(args):
     args.parsers[command].print_help()
 
 
-def get_service_version(args):
-    print_progress('Getting service version...')
-    service_version = connect(args).get_service_version()
-    print_progress(SUCCESS_MESSAGE)
+def send_request(args, start_message, request_func):
+    print_progress(start_message)
+
+    try:
+        session = connect(args)
+        service_version = request_func(session)
+        print_progress(SUCCESS_MESSAGE)
+    except Exception:
+        print_progress(FAILURE_MESSAGE)
+        raise
+
     return service_version
 
 
-def get_report(args):
-    print_progress('Getting report...')
-
-    report = connect(args).get_report(
-        args.start_time,
-        args.end_time,
-        args.network_operator_id,
-        args.group_id,
-        args.report_granularity,
-        args.kpis,
-        args.ungrouped_dimensions,
-        args.grouped_dimensions
+def get_service_version(args):
+    return send_request(
+        args,
+        'Getting service version...',
+        lambda session: session.get_service_version()
     )
 
-    print_progress(SUCCESS_MESSAGE)
 
-    return report
+def get_report(args):
+    return send_request(
+        args,
+        'Getting report...',
+        lambda session: session.get_report(
+            args.start_time,
+            args.end_time,
+            args.network_operator_id,
+            args.group_id,
+            args.report_granularity,
+            args.kpis,
+            args.ungrouped_dimensions,
+            args.grouped_dimensions
+        ))
 
 
 def print_progress(message):
@@ -210,5 +222,10 @@ def print_result(message):
 
 
 if __name__ == '__main__':
-    status = main()
+    try:
+        status = main()
+    except Exception as e:
+        print_progress(COLOR_RED + e.message + COLOR_NATIVE + '\n')
+        status = 1
+
     sys.exit(status)
