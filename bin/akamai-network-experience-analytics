@@ -57,6 +57,9 @@ def parse_cmdline_args():
                                      add_help=False,
                                      prog='akamai network-experience-analytics')
     parser.set_defaults(json=True, csv=False)
+    parser.add_argument('-v', '--version',
+                        action='version',
+                        version='1.0.0')
 
     subparsers = parser.add_subparsers()
 
