@@ -31,33 +31,41 @@ COLOR_NATIVE = '\033[m'
 SUCCESS_MESSAGE = ' [' + COLOR_GREEN + 'OK' + COLOR_NATIVE + ']\n'
 FAILURE_MESSAGE = ' [' + COLOR_RED + 'FAIL' + COLOR_NATIVE + ']\n'
 
+SUBCMD_REPORT = 'report'
+SUBCMD_SERVICE_VERSION = 'service-version'
+SUBCMD_HELP = 'help'
+SUBCMD_BASE = ''
+
 
 def main():
     args = parse_cmdline_args()
 
-    response = args.handler(args)
-    if response:
-        if args.csv:
-            parsed_report = json.loads(response.content)
-            print_result(nea.report_to_csv(parsed_report, args.ungrouped_dimensions))
-        else:
-            print_result(response.content)
+    if args:
+        response = args.handler(args)
+        if response:
+            if args.csv:
+                parsed_report = json.loads(response.content)
+                print_result(nea.report_to_csv(parsed_report, args.ungrouped_dimensions))
+            else:
+                print_result(response.content)
 
     return 0
 
 
 def parse_cmdline_args():
-    parser = argparse.ArgumentParser(description = 'Akamai CLI for Network Experience Analytics')
+    parser = argparse.ArgumentParser(description='Akamai CLI for Network Experience Analytics',
+                                     add_help=False,
+                                     prog='akamai network-experience-analytics')
     parser.set_defaults(json=True, csv=False)
 
     subparsers = parser.add_subparsers()
 
-    help_parser = subparsers.add_parser('help', help='Show available help')
-    help_parser.set_defaults(handler=print_help)
-
     # Arguments for controlling the output format and group ID are shared between multiple, but not all,
     # subparsers (reporting, configuration, etc). To reduce duplication, we keep these args in their
     # own parsers, and have the relevant subparsers declare them as their parent/parents.
+
+    # Output format parser
+    # --------------------
     output_format_parser = argparse.ArgumentParser(add_help=False)
     output_format_group = output_format_parser.add_mutually_exclusive_group()
     output_format_group.add_argument('-j', '--json',
@@ -67,21 +75,31 @@ def parse_cmdline_args():
                                      help='format output as CSV',
                                      action='store_true')
 
+    # Group ID parser
+    # ---------------
     group_id_parser = argparse.ArgumentParser(add_help=False)
-    group_id_parser.add_argument('-g', '--group-id', help='Luna portal group (context) numeric identifier',
-                                 type=int, required=True)
+    group_id_parser.add_argument('-g', '--group-id',
+                                 help='Luna portal group (context) numeric identifier',
+                                 type=int,
+                                 required=True)
 
+    # edgerc parser
+    # -------------
     edgerc_parser = argparse.ArgumentParser(add_help=False)
     edgerc_parser.add_argument('--edgerc', help='full path to the .edgerc file')
     edgerc_parser.add_argument('--section', help='a section of the .edgerc to use')
 
-    service_version_parser = subparsers.add_parser('service-version',
+    service_version_parser = subparsers.add_parser(SUBCMD_SERVICE_VERSION,
                                                    help='show version of the API service provider',
+                                                   add_help=False,
                                                    parents=[edgerc_parser])
     service_version_parser.set_defaults(handler=get_service_version)
 
-    report_arg_parser = subparsers.add_parser('report',
+    # Report parser
+    # -------------
+    report_arg_parser = subparsers.add_parser(SUBCMD_REPORT,
                                               help='display a network experience report',
+                                              add_help=False,
                                               parents=[output_format_parser, group_id_parser, edgerc_parser])
     report_arg_parser.add_argument('-o', '--network-operator-id',
                                    help='network operator numeric identifier',
@@ -109,8 +127,26 @@ def parse_cmdline_args():
                                    help='granularity of report data, in seconds',
                                    type=int,
                                    default=24*60*60)
-
     report_arg_parser.set_defaults(handler=get_report)
+
+    # Help parser
+    # -----------
+    help_parser = subparsers.add_parser(SUBCMD_HELP,
+                                        add_help=False,
+                                        help='Show available help')
+    help_parser.add_argument('command',
+                             nargs=argparse.ZERO_OR_MORE)
+
+    help_parser.set_defaults(handler=print_help,
+                             parsers={
+                                 SUBCMD_BASE: parser,
+                                 SUBCMD_REPORT: report_arg_parser,
+                                 SUBCMD_SERVICE_VERSION: service_version_parser,
+                             })
+
+    if len(sys.argv) <= 1:
+        parser.print_help()
+        return None
 
     return parser.parse_args()
 
@@ -131,7 +167,12 @@ def connect(args):
 
 
 def print_help(args):
-    pass
+    if args.command:
+        command = args.command[0]
+    else:
+        command = SUBCMD_BASE
+
+    args.parsers[command].print_help()
 
 
 def get_service_version(args):

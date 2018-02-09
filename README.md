@@ -31,12 +31,10 @@ Retrieve the API service provider version.
 
 ### Flags
 ```
-usage: akamai-network-experience-analytics service-version [-h]
-                                                           [--edgerc EDGERC]
+usage: akamai network-experience-analytics service-version [--edgerc EDGERC]
                                                            [--section SECTION]
 
 optional arguments:
-  -h, --help         show this help message and exit
   --edgerc EDGERC    full path to the .edgerc file
   --section SECTION  a section of the .edgerc to use
 ```
@@ -57,7 +55,7 @@ Query the API for a network experience report.
 
 ### Flags
 ```
-usage: akamai-network-experience-analytics report [-h] [-j | -c] -g GROUP_ID
+usage: akamai network-experience-analytics report [-j | -c] -g GROUP_ID
                                                   [--edgerc EDGERC]
                                                   [--section SECTION] -o
                                                   NETWORK_OPERATOR_ID -s
@@ -68,7 +66,6 @@ usage: akamai-network-experience-analytics report [-h] [-j | -c] -g GROUP_ID
                                                   [-G REPORT_GRANULARITY]
 
 optional arguments:
-  -h, --help            show this help message and exit
   -j, --json            format output as JSON
   -c, --csv             format output as CSV
   -g GROUP_ID, --group-id GROUP_ID
