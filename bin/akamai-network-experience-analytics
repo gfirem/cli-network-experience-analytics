@@ -182,21 +182,21 @@ def send_request(args, start_message, request_func):
     print_progress(start_message)
 
     try:
-        session = connect(args)
-        service_version = request_func(session)
+        client = connect(args)
+        response = request_func(client)
         print_progress(SUCCESS_MESSAGE)
     except Exception:
         print_progress(FAILURE_MESSAGE)
         raise
 
-    return service_version
+    return response
 
 
 def get_service_version(args):
     return send_request(
         args,
         'Getting service version...',
-        lambda session: session.get_service_version()
+        lambda client: client.get_service_version()
     )
 
 
@@ -204,7 +204,7 @@ def get_report(args):
     return send_request(
         args,
         'Getting report...',
-        lambda session: session.get_report(
+        lambda client: client.get_report(
             args.start_time,
             args.end_time,
             args.network_operator_id,
