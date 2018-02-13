@@ -6,7 +6,7 @@
     {
       "name": "network-experience-analytics",
       "aliases": ["nea"],
-      "version": "1.0.0",
+      "version": "0.1.0",
       "description": "Access and control Network Experience Analytics"
     }
   ]
