@@ -61,7 +61,7 @@ def parse_cmdline_args():
                         action='version',
                         version='1.0.0')
 
-    subparsers = parser.add_subparsers()
+    subparsers = parser.add_subparsers(title='Commands', metavar='')
 
     # Arguments for controlling the output format and group ID are shared between multiple, but not all,
     # subparsers (reporting, configuration, etc). To reduce duplication, we keep these args in their
