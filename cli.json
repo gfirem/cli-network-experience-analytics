@@ -1,4 +1,5 @@
 {
+  "name": "akamai/network-experience-analytics",
   "requirements": {
     "python": "2.7.5"
   },
