@@ -14,7 +14,7 @@
 
 import logging
 import csv
-import StringIO
+import io
 
 logger = logging.getLogger('nea')
 logger.setLevel(logging.DEBUG)
@@ -108,7 +108,7 @@ class NeaClient(object):
 
 
 def report_to_csv(report, ungrouped_dimensions):
-    csv_output = StringIO.StringIO()
+    csv_output = io.StringIO()
     writer = csv.writer(csv_output)
 
     writer.writerow(ungrouped_dimensions + report['kpis'])

@@ -56,7 +56,7 @@ class ReportToCsvTestCase(unittest.TestCase):
         }
 
     def test_multi_kpi(self):
-        self.assertEquals(
+        self.assertEqual(
             nea.report_to_csv(self.multi_kpi_report, ['time']),
             CSV_NEWLINE.join([
                 'time,Plays with Rebuffers,Startup Time,Bitrate',
