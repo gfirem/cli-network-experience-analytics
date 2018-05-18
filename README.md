@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/gfirem/cli-network-experience-analytics.svg?branch=master)](https://travis-ci.org/gfirem/cli-network-experience-analytics)
+
 # Akamai CLI for Network Experience Analytics
 
 The Network Experience Analytics (NEA) CLI provides you with statistics that depict the media, web, server, and network content quality of experience (QoE) your users have when accessing content from your network.
